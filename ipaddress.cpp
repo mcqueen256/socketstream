@@ -7,8 +7,7 @@
 #include "types.hpp"
 
 std::ostream& operator<<(std::ostream& os, const IPAddress& ip) {
-	os << "<IPAddress "
-		<< ip.b4 << '.' << ip.b3 << '.' << ip.b2 << '.' << ip.b1 << " >";
+	os << ip.b4 << '.' << ip.b3 << '.' << ip.b2 << '.' << ip.b1;
 	return os;
 }
 
