@@ -1,6 +1,7 @@
 #include <iostream>
 #include <streambuf>
 #include <string>
+#include <vector>
 
 #include "ipaddress.hpp"
 #include "types.hpp"
@@ -92,7 +93,7 @@ public:
 		}
 	}
 
-	virtual void connect() {
+	void connect() {
 		std::cout << "unix_socket::connect()" << std::endl;
 		struct sockaddr_in socketAddr;
 		fd = ::socket(AF_INET, SOCK_STREAM, 0);
@@ -117,7 +118,7 @@ public:
 	    }
 	}
 
-	virtual void close() {
+	void close() {
 		std::cout << "unix_socket::close()" << std::endl;
 		::close(fd);
 	}
@@ -137,8 +138,53 @@ private:
 
 
 
-class socketbuf {
+class socketbuf : public std::streambuf {
 public:
-	socketbuf(basic_socket& sock);
+	socketbuf(basic_socket& socket, std::size_t buffer_size=256, std::size_t put_back_size=8);
 	~socketbuf();
+
+private:
+	int_type underflow();
+
+	/* copy tor and assignment not implemented; */
+	/* copying not allowed */
+	socketbuf(const socketbuf&);
+	socketbuf& operator=(const socketbuf&);
+private:
+	std::size_t put_back_size;
+	std::vector<char> buffer;
+	basic_socket* socket;
 };
+
+socketbuf::~socketbuf() {}
+
+socketbuf::socketbuf(basic_socket& socket, std::size_t buffer_size, std::size_t put_back_size) :
+	socket(&socket),
+	put_back_size(put_back_size),
+	buffer(std::max(buffer_size, put_back_size) + put_back_size)
+{
+	char* end = &buffer.front() + buffer.size();
+	setg(end, end, end);
+}
+
+std::streambuf::int_type socketbuf::underflow() {
+	if (gptr() < egptr())
+		return traits_type::to_int_type(*gptr());
+
+	char* base = &buffer.front();
+	char* start = base;
+
+	if (eback() == base) {
+		std::memmove(base, egptr() - put_back_size, put_back_size);
+		start += put_back_size;
+	}
+
+	std::size_t n = socket->read(start, buffer.size() - (start - base));
+	if (n == 0)
+		return traits_type::eof();
+
+	setg(base, start, start + n);
+
+	return traits_type::to_int_type(*gptr());
+}
+
