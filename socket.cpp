@@ -30,9 +30,9 @@ public:
     explicit socket_info(unsigned int ip, int port, bool open_now=true);
     explicit socket_info(std::string hostname, int port, bool open_now=true);
 
-    IPAddress getIPAddress();
-    int getPort();
-    bool getOpenNow();
+    IPAddress getIPAddress() const;
+    int getPort() const;
+    bool getOpenNow() const;
 
     socket_info(const socket_info&);
     socket_info& operator=(const socket_info&);
@@ -61,15 +61,15 @@ socket_info::socket_info(unsigned int ip, int port, bool open_now) :
 socket_info::socket_info(std::string hostname, int port, bool open_now) :
     ipaddress(hostname), port(port), open_now(open_now) {}
 
-IPAddress socket_info::getIPAddress() {
+IPAddress socket_info::getIPAddress() const {
     return ipaddress;
 }
 
-int socket_info::getPort() {
+int socket_info::getPort() const {
     return port;
 }
 
-bool socket_info::getOpenNow() {
+bool socket_info::getOpenNow() const {
     return open_now;
 }
 
@@ -78,9 +78,9 @@ socket_info::socket_info(const socket_info& si) {
 }
 
 socket_info& socket_info::operator=(const socket_info& si) {
-    ipaddress = ((socket_info)si).getIPAddress();
-    port = ((socket_info)si).getPort();
-    open_now = ((socket_info)si).getOpenNow();
+    ipaddress = si.getIPAddress();
+    port = si.getPort();
+    open_now = si.getOpenNow();
     return *this;
 }
 
@@ -125,7 +125,7 @@ protected:
 
 /* Constructor */
 basic_socket::basic_socket(socket_info si) :
-    ipaddress(si.getIPAddress()), port(si.getPort()), is_open(si.getOpenNow()){}
+ipaddress(si.getIPAddress()), port(si.getPort()), is_open(si.getOpenNow()) {}
 
 bool basic_socket::isOpen() { return is_open; }
 
@@ -148,7 +148,6 @@ public:
     }
 
     void connect() {
-        std::cout << "unix_socket::connect()" << std::endl;
         struct sockaddr_in socketAddr;
         fd = ::socket(AF_INET, SOCK_STREAM, 0);
         if (fd < 0) {
@@ -173,7 +172,6 @@ public:
     }
 
     void close() {
-        std::cout << "unix_socket::close()" << std::endl;
         ::close(fd);
     }
 
@@ -278,9 +276,11 @@ int socketbuf::sync() {
     return 0;
 }
 
+
+
 class socketstream : public std::iostream {
 public:
-    socketstream(socket_info si);
+    explicit socketstream(socket_info si);
     explicit socketstream(IPAddress& ip, int port, bool open_now=true);
     explicit socketstream(int d, int c, int b, int a, int port,
         bool open_now=true);
@@ -292,29 +292,37 @@ public:
     socketstream& operator=(const socketstream&);
 private:
     void init();
-    basic_socket* socket;
+    basic_socket* socket = NULL;
+    socketbuf* buffer;
     bool is_copy = false;
+};
+
+class bitbucket : public std::streambuf {
+public:
+    int_type underflow() {return 1;}
+    int_type overflow(int_type ch) {return 1;}
+    int sync() {return 1;}
 };
 
 /*
  * Main constructor. 
  */
-socketstream::socketstream(socket_info si) : socket(new type_socket(si)), std::iostream(new socketbuf(socket)) {
+
+socketstream::socketstream(socket_info si) : std::iostream(new bitbucket) {
+    socket = new type_socket(si);
+    buffer = new socketbuf(socket);
+    rdbuf(buffer);
+
 }
 
 /* Shorthand constructors */
-socketstream::socketstream(IPAddress& ip, int port,
-    bool open_now) : socketstream(socket_info(ip, port, open_now)) {}
-socketstream::socketstream(int d, int c, int b, int a, int port,
-    bool open_now) :
-    socketstream(socket_info(d, c, b, a, port, open_now)) {}
-socketstream::socketstream(unsigned int ip, int port,
-    bool open_now) : socketstream(socket_info(ip, port, open_now)) {}
-socketstream::socketstream(std::string hostname, int port,
-    bool open_now) : socketstream(socket_info(hostname, port, open_now)) {}
+socketstream::socketstream(IPAddress& ip, int port, bool open_now) : socketstream(socket_info(ip, port, open_now)) {}
+socketstream::socketstream(int d, int c, int b, int a, int port, bool open_now) : socketstream(socket_info(d, c, b, a, port, open_now)) {}
+socketstream::socketstream(unsigned int ip, int port, bool open_now) : socketstream(socket_info(ip, port, open_now)) {}
+socketstream::socketstream(std::string hostname, int port, bool open_now) : socketstream(socket_info(hostname, port, open_now)) {}
 
 /* Clone constructor */
-socketstream::socketstream(const socketstream& ss) : std::iostream(NULL) {
+socketstream::socketstream(const socketstream& ss) : std::iostream(ss.rdbuf()) {
     is_copy = true;
     this->rdbuf(ss.rdbuf());
     this->socket = NULL;

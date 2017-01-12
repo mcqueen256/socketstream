@@ -4,7 +4,6 @@
 
 #include <iostream>
 
-
 int main() {
 	socketstream ss(127,0,0,1,12345);
 
@@ -13,6 +12,5 @@ int main() {
 	ss >> s;
 
 	std::cout << "captured input is: '" << s << "'" << std::endl;
-
 	return 0;
 }
