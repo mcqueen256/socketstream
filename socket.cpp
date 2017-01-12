@@ -2,24 +2,19 @@
 #include <streambuf>
 #include <string>
 
-typedef unsigned char byte;
-typedef unsigned short word;
-
-class IPAddress {
-public:
-	IPAddress(byte a, byte b, byte c, byte d);
-}
+#include "ipaddress.h"
+#include "types.h"
 
 class basic_socket {
 public:
-	explicit basic_socket(IPAddress& ip, word port, bool openNow=true);
-	explicit basic_socket(byte a, byte b, byte c, byte d, word port, bool openNow=true);
-	explicit basic_socket(unsigned int ip, word port, bool openNow=true);
-	explicit basic_socket(std::string hostname, word port, bool openNow=true);
+	explicit basic_socket(IPAddress& ip, word port, bool open_now=true);
+	explicit basic_socket(byte a, byte b, byte c, byte d, word port, bool open_now=true);
+	explicit basic_socket(unsigned int ip, word port, bool open_now=true);
+	explicit basic_socket(std::string hostname, word port, bool open_now=true);
 	~basic_socket();
 
     /* Methods that must be overrided. */
-	virtual bool open() = 0;
+	virtual bool connect() = 0;
 	virtual bool close() = 0;
 	virtual std::size_t read(const char* buffer, std::size_t length) = 0;
 	virtual std::size_t write(const char* buffer, std::size_t length) = 0;
@@ -37,6 +32,8 @@ private:
 	IPAddress ip;
 	word port;
 };
+
+
 
 class socketbuf {
 public:
