@@ -2,8 +2,8 @@
 #include <streambuf>
 #include <string>
 
-#include "ipaddress.h"
-#include "types.h"
+#include "ipaddress.hpp"
+#include "types.hpp"
 
 class basic_socket {
 public:
@@ -28,10 +28,43 @@ public:
 	basic_socket& operator=(const basic_socket &);
 
 private:
+	void init();
+
+private:
 	bool is_open = false;
-	IPAddress ip;
+	IPAddress ipaddress;
 	word port;
 };
+
+/*
+ * Constructor
+ *
+ */
+basic_socket::basic_socket(IPAddress& ip, word port, bool open_now) :
+	ipaddress(ip), port(port), is_open(open_now) { init(); }
+
+/*
+ * Constructor
+ *
+ */
+basic_socket::basic_socket(byte d, byte c, byte b, byte a, word port, bool open_now) :
+	ipaddress(d, c, b, a), port(port), is_open(open_now) { init(); }
+
+/*
+ * Constructor
+ *
+ */
+basic_socket::basic_socket(unsigned int ip, word port, bool open_now) :
+	ipaddress(ip), port(port), is_open(open_now) { init(); }
+
+/*
+ * Constructor
+ *
+ */
+basic_socket::basic_socket(std::string hostname, word port, bool open_now) :
+	ipaddress(hostname), port(port), is_open(open_now) { init(); }
+
+basic_socket::~basic_socket() {}
 
 
 
